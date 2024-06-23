@@ -6,7 +6,7 @@
 /*   By: ecoma-ba <ecoma-ba@student.42barcel>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/23 16:07:13 by ecoma-ba          #+#    #+#             */
-/*   Updated: 2024/06/23 16:46:32 by ecoma-ba         ###   ########.fr       */
+/*   Updated: 2024/06/23 21:36:26 by ecoma-ba         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include "get_next_line.h"
@@ -16,77 +16,100 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-int	buffered_line_reader(int fd, char **buf)
+// grows a buffer by appending a new buffer to it.
+char	*grow_buf(char *old_buf, char *new_buf, size_t buf_size,
+		size_t extra_size)
 {
-	int	r;
-	int	buf_size = BUFFER_SIZE;
+	char	*buf;
 
-	if (!*buf)
-	{
-		buf_size = 1;
-		*buf = malloc(buf_size);
-		*buf[buf_size - 1] = '\0';
-	}
-	else
-		buf_size = ft_strlen(*buf) + 1;
-	//	*buf = str_plus_one(buf, ++buf_size);
-	if (!*buf)
-		return (-1);
-	r = read(fd, (char *)(*buf + buf_size - 2), 1);
-	if (*buf[buf_size - 2] == '\n')
-		*buf[buf_size - 2] = '\0';
-	else
-		*buf[buf_size - 1] = '\0';
-	return (r);
-}
-
-char	*read_line(int fd)
-{
-	static char	*buf;
-	int		r;
-
-	r = 1;
-	buf = malloc(sizeof(void *));
+	if (!old_buf)
+		buf_size = 0;
+	buf = ft_calloc(buf_size + extra_size, sizeof(char));
 	if (!buf)
 		return (NULL);
-	while (r > 0)
-	{
-		r = buffered_line_reader(fd, &buf);
-		if (r == 0)
-			return (buf);
-		if (r < 0)
-		{
-			return (NULL);
-		}
-	}
+	if (old_buf)
+		ft_memcpy(buf, old_buf, buf_size);
+	ft_memcpy(&(buf[buf_size]), new_buf, extra_size);
+	ft_bzero(new_buf, extra_size);
+	free(old_buf);
 	return (buf);
+}
+
+// reads in BUFFER_SIZE'd chunks from fd, until a \n is read (or file ends)
+// writes to leftovers and updates it's size
+// returns 0 if everything is ok, 1 on error
+int	get_next_buffer(int fd, char **leftovers, size_t *leftover_size)
+{
+	char	*new_buf;
+	ssize_t	read_bytes;
+
+	read_bytes = BUFFER_SIZE;
+	new_buf = ft_calloc(BUFFER_SIZE, 1);
+	if (!new_buf)
+		return (1);
+	while (ft_memchr_idx(new_buf, '\n', BUFFER_SIZE) == -1
+		&& read_bytes == BUFFER_SIZE)
+	{
+		read_bytes = read(fd, new_buf, BUFFER_SIZE);
+		if (read_bytes <= 0)
+			break ;
+		*leftovers = grow_buf(*leftovers, new_buf, *leftover_size, read_bytes);
+		if (!*leftovers)
+		{
+			free(new_buf);
+			return (1);
+		}
+		*leftover_size += read_bytes;
+	}
+	free(new_buf);
+	return (0);
+}
+
+// handles the leftovers after a line is selected to be printed.
+// if there are no leftovers, it frees them. otherwise it copies them to
+// the start of the leftover accomulator.
+// returns 1 on error.
+int	manage_leftovers(char **leftovers, size_t *leftover_size, int line_len)
+{
+	char	*tempovers;
+
+	if (leftover_size == 0)
+	{
+		free(*leftovers);
+		*leftovers = NULL;
+	}
+	else
+	{
+		tempovers = *leftovers;
+		*leftovers = ft_memmove(tempovers + line_len, *leftover_size);
+		if (!*leftovers)
+			return (1);
+		free(tempovers);
+	}
+	return (0);
 }
 
 char	*get_next_line(int fd)
 {
-	if (fd < 0)
+	static char		*leftovers = NULL;
+	static size_t	leftover_size = 0;
+	char			*line;
+	int				line_len;
+
+	if (!fd)
 		return (NULL);
-	return (NULL);
-}
-
-int	main(int argc, char **argv)
-{
-	int		fd;
-	char	*line;
-
-	if (argc < 2)
+	if (!leftovers)
+		if (get_next_buffer(fd, &leftovers, &leftover_size))
+			return (NULL);
+	line_len = ft_memchr_idx(leftovers, '\n', leftover_size) + 1;
+	if (line_len == 0)
+		return (leftovers);
+	line = ft_memmove(leftovers, line_len);
+	leftover_size -= line_len;
+	if (manage_leftovers(&leftovers, &leftover_size, line_len) == 1)
 	{
-		printf("Not enough arguments. Usage: "
-				"%s filename [filename...]\n",
-				argv[0]);
-		return (1);
+		free(line);
+		return (NULL);
 	}
-	fd = open(argv[1], O_RDONLY);
-	line = get_next_line(fd);
-	while (line)
-	{
-		printf("%s", line);
-		line = get_next_line(fd);
-	}
-		printf("\n\nwe are so fucking done.\n");
+	return (line);
 }

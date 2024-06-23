@@ -6,25 +6,30 @@ SRC_BONUS = get_next_line_bonus.c get_next_line_utils_bonus.c
 OBJ_BONUS = $(patsubst %.c,%.o,$(SRC_BONUS))
 HDR_FILES = get_next_line_bonus.h
 
-BUILD_DIR = .
+SRC_TEST = $(wildcard $(TEST_DIR)/*.c)
+OBJ_TEST = $(patsubst %.c,%.o,$(SRC_TEST))
+TEST_DIR = tests
 
 NAME = get_next_line
 
 CC = cc
-CFLAGS = -Wall -Wextra -Werror -g
+CFLAGS = -Wall -Wextra -Werror -g -I.
 
-all: $(NAME)
+all: $(NAME) Makefile
 
 .SECONDEXPANSION:
-$(NAME): $$(SRC_FILES) $(HDR_FILES)
+$(NAME): main.c $$(SRC_FILES) $(HDR_FILES)
 	$(CC) $(CFLAGS) -o $@ $^
 
 bonus: SRC_FILES += $(SRC_BONUS)
 bonus: HDR_FILES += $(HDR_BONUS)
-bonus: $(NAME)
+bonus: all
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+test: CFLAGS += -fsanitize=address
+test: all tests.o Makefile
+
+tests.o: $(OBJ_TEST) $(OBJ_FILES)
+	$(CC) $(CFLAGS) -o $@ $^
 
 clean reclean:
 	rm -rf $(OBJ_FILES) $(OBJ_BONUS) 
@@ -40,4 +45,4 @@ info:
 	$(info $(SRC_FILES))
 	$(info $(SRC_BONUS))
 
-.PHONY: all fclean reclean re bonus rebonus info
+.PHONY: all fclean reclean re bonus rebonus info test

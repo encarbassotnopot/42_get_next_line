@@ -6,21 +6,30 @@
 /*   By: ecoma-ba <ecoma-ba@student.42barcel>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/23 16:16:23 by ecoma-ba          #+#    #+#             */
-/*   Updated: 2024/06/23 16:35:05 by ecoma-ba         ###   ########.fr       */
+/*   Updated: 2024/06/23 21:19:02 by ecoma-ba         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef GET_NEXT_LINE_H
 # define GET_NEXT_LINE_H
 # if BUFFER_SIZE < 1
-#	undef BUFFER_SIZE
+#  undef BUFFER_SIZE
 # endif
 # ifndef BUFFER_SIZE
-#  define BUFFER_SIZE 42
+#  define BUFFER_SIZE 4
 # endif
 # include <stddef.h>
-int		buffered_line_reader(int fd, char **buf);
-char	*read_line(int fd);
+
+char	*grow_buf(char *old_buf, char *new_buf, size_t buf_size,
+			size_t extra_size);
+
+int		get_next_buffer(int fd, char **leftovers, size_t *leftover_size);
 char	*get_next_line(int fd);
+char	*ft_strchr(const char *s, int c);
+void	*ft_memcpy(void *dest, const void *src, size_t n);
+void	*ft_calloc(size_t nmemb, size_t size);
+void	ft_bzero(void *ptr, size_t n);
 size_t	ft_strlen(const char *s);
+char	*ft_memmove(char *s, size_t n);
+int		ft_memchr_idx(const char *s, int c, size_t n);
 #endif
