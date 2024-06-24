@@ -4,7 +4,7 @@ HDR_FILES = get_next_line.h
 
 SRC_BONUS = get_next_line_bonus.c get_next_line_utils_bonus.c
 OBJ_BONUS = $(patsubst %.c,%.o,$(SRC_BONUS))
-HDR_FILES = get_next_line_bonus.h
+HDR_BONUS = get_next_line_bonus.h
 
 SRC_TEST = $(wildcard $(TEST_DIR)/*.c)
 OBJ_TEST = $(patsubst %.c,%.o,$(SRC_TEST))
@@ -17,13 +17,11 @@ CFLAGS = -Wall -Wextra -Werror -g -I.
 
 all: $(NAME) Makefile
 
-.SECONDEXPANSION:
-$(NAME): main.c $$(SRC_FILES) $(HDR_FILES)
-	$(CC) $(CFLAGS) -o $@ $^
+$(NAME): main.c $(SRC_FILES) $(HDR_FILES)
 
-bonus: SRC_FILES += $(SRC_BONUS)
-bonus: HDR_FILES += $(HDR_BONUS)
-bonus: all
+$(NAME)_bonus: main.c $(SRC_BONUS) $(HDR_BONUS)
+
+bonus: $(NAME)_bonus
 
 test: CFLAGS += -fsanitize=address
 test: all tests.o Makefile
