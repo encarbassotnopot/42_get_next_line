@@ -6,7 +6,7 @@
 /*   By: ecoma-ba <ecoma-ba@student.42barcel>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/23 18:22:39 by ecoma-ba          #+#    #+#             */
-/*   Updated: 2024/06/24 12:05:10 by ecoma-ba         ###   ########.fr       */
+/*   Updated: 2024/06/24 16:26:28 by ecoma-ba         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,12 +14,17 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 int	main(int argc, char **argv)
 {
 	int		fd;
 	char	*line;
+	int		file_end;
+	int		i;
 
+	i = 1;
 	line = NULL;
 	if (argc < 2)
 	{
@@ -28,16 +33,27 @@ int	main(int argc, char **argv)
 				argv[0]);
 		return (1);
 	}
-	if (argv[1][0] == '0' && argv[1][1] == '\0')
-		fd = 0;
-	else
-		fd = open(argv[1], O_RDONLY);
-	do
+	printf("Buffer Size is %d.\n", BUFFER_SIZE);
+	while (i < argc)
 	{
-		free(line);
-		line = get_next_line(fd);
-		printf("línia:\t\t %s", line);
-	} while (line);
-	free(line);
-	printf("\n\nwe are so fucking done.\n");
+		file_end = 0;
+		if (strlen(argv[i]) == 1 && (argv[i][0] == '0' || argv[i][0] == '1'
+				|| argv[i][0] == '2'))
+			fd = argv[i][0] - '0';
+		else
+			fd = open(argv[i], O_RDONLY);
+		printf("Reading from %d.\n", fd);
+		while (!file_end)
+		{
+			line = get_next_line(fd);
+			if (line)
+				printf("línia:\t\t %s", line);
+			else
+				file_end = 1;
+			free(line);
+		}
+		close(fd);
+		printf("\nwe are so fucking done.\n");
+		i++;
+	}
 }
