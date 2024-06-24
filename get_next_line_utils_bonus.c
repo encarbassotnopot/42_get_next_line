@@ -6,7 +6,7 @@
 /*   By: ecoma-ba <ecoma-ba@student.42barcel>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/23 16:15:21 by ecoma-ba          #+#    #+#             */
-/*   Updated: 2024/06/24 17:23:39 by ecoma-ba         ###   ########.fr       */
+/*   Updated: 2024/06/24 18:26:39 by ecoma-ba         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include "get_next_line_bonus.h"
@@ -14,23 +14,41 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-char	*ft_memdup(char *s, size_t n)
+// creates a new node and adds it to the front of the list
+t_fd_list	*new_fd(int fd, t_fd_list *head)
 {
-	size_t	count;
-	char	*dst;
+	t_fd_list	*my_node;
 
-	if (!s || !n)
+	my_node = malloc(sizeof(t_fd_list));
+	if (!my_node)
 		return (NULL);
-	dst = malloc(n);
-	if (!dst)
-		return (NULL);
-	count = 0;
-	while (count < n)
+	my_node->fd = fd;
+	my_node->leftovers = NULL;
+	my_node->leftover_size = 0;
+	my_node->next = head;
+	return (my_node);
+}
+
+t_fd_list	*fd_picker(int fd, t_fd_list **head)
+{
+	t_fd_list	*list_iter;
+
+	if (!*head)
 	{
-		dst[count] = s[count];
-		count++;
+		*head = new_fd(fd, *head);
+		return (*head);
 	}
-	return (dst);
+	list_iter = *head;
+	while (list_iter->next)
+	{
+		if (list_iter->fd == fd)
+			return (list_iter);
+		list_iter = list_iter->next;
+	}
+	if (list_iter->fd == fd)
+		return (list_iter);
+	*head = new_fd(fd, *head);
+	return (*head);
 }
 
 int	ft_memchr_idx(const char *s, int c, size_t n)
@@ -73,21 +91,6 @@ void	*ft_memcpy(void *dest, const void *src, size_t n)
 		i++;
 	}
 	return (dest);
-}
-
-void	*ft_calloc(size_t nmemb, size_t size)
-{
-	size_t	total;
-	void	*out;
-
-	if (SIZE_MAX / nmemb < size)
-		return (NULL);
-	total = nmemb * size;
-	out = malloc(total);
-	if (!out)
-		return (NULL);
-	ft_bzero(out, total);
-	return (out);
 }
 
 void	ft_bzero(void *ptr, size_t n)

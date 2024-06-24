@@ -6,7 +6,7 @@
 /*   By: ecoma-ba <ecoma-ba@student.42barcel>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/23 16:07:13 by ecoma-ba          #+#    #+#             */
-/*   Updated: 2024/06/24 17:56:54 by ecoma-ba         ###   ########.fr       */
+/*   Updated: 2024/06/24 18:54:45 by ecoma-ba         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include "get_next_line_bonus.h"
@@ -15,6 +15,36 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+// removes an element from the list. returns 0 to save lines further down
+void	*pop_fd(int fd, t_fd_list **head)
+{
+	t_fd_list	*list_iter;
+	t_fd_list	*prev;
+
+	if (!*head)
+		return (NULL);
+	list_iter = *head;
+	if (list_iter->fd == fd)
+	{
+		prev = list_iter->next;
+		free(*head);
+		*head = prev;
+		return (NULL);
+	}
+	while (list_iter->next)
+	{
+		prev = list_iter;
+		list_iter = list_iter->next;
+		if (list_iter->fd == fd)
+		{
+			prev->next = list_iter->next;
+			free(list_iter);
+			return (NULL);
+		}
+	}
+	return (NULL);
+}
 
 // grows a buffer by appending a new buffer to it.
 char	*grow_buf(char *old_buf, char *new_buf, size_t buf_size,
@@ -26,7 +56,7 @@ char	*grow_buf(char *old_buf, char *new_buf, size_t buf_size,
 		buf_size = 0;
 	if (extra_size < 1)
 		return (old_buf);
-	buf = ft_calloc(buf_size + extra_size, sizeof(char));
+	buf = malloc(buf_size + extra_size);
 	if (!buf)
 		return (NULL);
 	if (old_buf)
@@ -36,34 +66,33 @@ char	*grow_buf(char *old_buf, char *new_buf, size_t buf_size,
 	return (buf);
 }
 
-int	return_on_error(void *to_free, int return_value)
-{
-	free(to_free);
-	return (return_value);
-}
-
 // reads in BUFFER_SIZE'd chunks from fd, until a \n is read (or file ends)
 // writes to leftovers and updates it's size
 // returns 0 if everything is ok, 1 on file error/end, 2 on malloc error.
 int	get_next_buffer(int fd, char **leftovers, size_t *leftover_size)
 {
 	char	*new_buf;
-	ssize_t	read_bytes;
+	ssize_t	rb;
 
-	read_bytes = BUFFER_SIZE;
-	new_buf = ft_calloc(BUFFER_SIZE, 1);
+	rb = BUFFER_SIZE;
+	new_buf = malloc(BUFFER_SIZE);
 	if (!new_buf)
 		return (1);
-	while (ft_memchr_idx(new_buf, '\n', read_bytes) == -1
-		&& read_bytes == BUFFER_SIZE)
+	while (ft_memchr_idx(new_buf, '\n', rb) == -1 && rb == BUFFER_SIZE)
 	{
-		read_bytes = read(fd, new_buf, BUFFER_SIZE);
-		if (read_bytes <= 0)
-			return (return_on_error(new_buf, 1));
-		*leftovers = grow_buf(*leftovers, new_buf, *leftover_size, read_bytes);
+		rb = read(fd, new_buf, BUFFER_SIZE);
+		if (rb <= 0)
+		{
+			free(new_buf);
+			return (1);
+		}
+		*leftovers = grow_buf(*leftovers, new_buf, *leftover_size, rb);
 		if (!*leftovers)
-			return (return_on_error(new_buf, 2));
-		*leftover_size += read_bytes;
+		{
+			free(new_buf);
+			return (2);
+		}
+		*leftover_size += rb;
 	}
 	free(new_buf);
 	return (0);
@@ -84,50 +113,14 @@ int	manage_leftovers(char **leftovers, size_t leftover_size, int line_len)
 	}
 	else
 	{
-		tempovers = *leftovers;
-		*leftovers = ft_memdup(tempovers + line_len, leftover_size);
-		if (!*leftovers)
+		tempovers = ft_memcpy(malloc(leftover_size), *leftovers + line_len,
+				leftover_size);
+		free(*leftovers);
+		*leftovers = tempovers;
+		if (!tempovers)
 			return (1);
-		free(tempovers);
 	}
 	return (0);
-}
-
-// creates a new node and adds it to the front of the list
-t_fd_list	*new_fd(int fd, t_fd_list *head)
-{
-	t_fd_list	*my_node;
-
-	my_node = malloc(sizeof(t_fd_list));
-	if (!my_node)
-		return (NULL);
-	my_node->fd = fd;
-	my_node->leftovers = NULL;
-	my_node->leftover_size = 0;
-	my_node->next = head;
-	return (my_node);
-}
-
-t_fd_list	*fd_picker(int fd, t_fd_list **head)
-{
-	t_fd_list	*list_iter;
-
-	if (!*head)
-	{
-		*head = new_fd(fd, *head);
-		return (*head);
-	}
-	list_iter = *head;
-	while (list_iter->next)
-	{
-		if (list_iter->fd == fd)
-			return (list_iter);
-		list_iter = list_iter->next;
-	}
-	if (list_iter->fd == fd)
-		return (list_iter);
-	*head = new_fd(fd, *head);
-	return (*head);
 }
 
 char	*get_next_line(int fd)
@@ -144,17 +137,17 @@ char	*get_next_line(int fd)
 		return (NULL);
 	if (!node->leftovers || node->leftover_size == 0
 		|| ft_memchr_idx(node->leftovers, '\n', node->leftover_size) == -1)
+	{
 		if (get_next_buffer(fd, &node->leftovers, &node->leftover_size) > 0)
-		{
-			return (NULL);
-		}
+			return (pop_fd(fd, &lst_head));
+	}
 	line_len = ft_memchr_idx(node->leftovers, '\n', node->leftover_size) + 1;
 	if (line_len == 0)
 		line_len = node->leftover_size;
-	line = ft_memdup(node->leftovers, line_len);
+	line = ft_memcpy(malloc(line_len), node->leftovers, line_len);
 	line = grow_buf(line, "\0", line_len, 1);
 	node->leftover_size -= line_len;
 	if (manage_leftovers(&node->leftovers, node->leftover_size, line_len) != 0)
-		return (NULL);
+		return (pop_fd(fd, &lst_head));
 	return (line);
 }
