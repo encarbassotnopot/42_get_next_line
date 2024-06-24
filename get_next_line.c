@@ -6,7 +6,7 @@
 /*   By: ecoma-ba <ecoma-ba@student.42barcel>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/23 16:07:13 by ecoma-ba          #+#    #+#             */
-/*   Updated: 2024/06/24 16:33:02 by ecoma-ba         ###   ########.fr       */
+/*   Updated: 2024/06/24 16:38:54 by ecoma-ba         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include "get_next_line.h"
@@ -100,7 +100,7 @@ char	*get_next_line(int fd)
 	char			*line;
 	int				line_len;
 
-	if (!fd)
+	if (fd < 0)
 		return (NULL);
 	if (!leftovers || leftover_size == 0 || ft_memchr_idx(leftovers, '\n',
 			leftover_size) == -1)
@@ -109,11 +109,6 @@ char	*get_next_line(int fd)
 	line_len = ft_memchr_idx(leftovers, '\n', leftover_size) + 1;
 	if (line_len == 0)
 		line_len = leftover_size;
-	/*{*/
-	/*	grow_buf(leftovers, "\0", leftover_size, 1);*/
-	/*	leftover_size = 0;*/
-	/*	return (leftovers);*/
-	/*}*/
 	line = ft_memdup(leftovers, line_len);
 	line = grow_buf(line, "\0", line_len, 1);
 	leftover_size -= line_len;
