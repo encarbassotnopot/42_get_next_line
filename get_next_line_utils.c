@@ -6,7 +6,7 @@
 /*   By: ecoma-ba <ecoma-ba@student.42barcel>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/23 16:15:21 by ecoma-ba          #+#    #+#             */
-/*   Updated: 2024/06/24 11:51:02 by ecoma-ba         ###   ########.fr       */
+/*   Updated: 2024/06/24 12:18:11 by ecoma-ba         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include "get_next_line.h"
@@ -47,10 +47,12 @@ int	ft_memchr_idx(const char *s, int c, size_t n)
 	my_str = (char *)s;
 	my_chr = (unsigned char)c;
 	while (idx < len)
+	{
 		if (my_str[idx] == my_chr)
 			return (idx);
 		else
 			idx++;
+	}
 	return (-1);
 }
 
@@ -98,7 +100,5 @@ void	ft_bzero(void *ptr, size_t n)
 	i = 0;
 	my_ptr = ptr;
 	while (i < n)
-	{
 		my_ptr[i++] = 0;
-	}
 }
