@@ -6,7 +6,7 @@
 /*   By: ecoma-ba <ecoma-ba@student.42barcel>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/23 16:15:21 by ecoma-ba          #+#    #+#             */
-/*   Updated: 2024/06/23 21:33:54 by ecoma-ba         ###   ########.fr       */
+/*   Updated: 2024/06/24 11:51:02 by ecoma-ba         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include "get_next_line.h"
@@ -14,12 +14,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-char	*ft_memmove(char *s, size_t n)
+char	*ft_memdup(char *s, size_t n)
 {
 	size_t	count;
 	char	*dst;
 
-	if (!s)
+	if (!s || !n)
 		return (NULL);
 	dst = malloc(n);
 	if (!dst)
@@ -46,11 +46,12 @@ int	ft_memchr_idx(const char *s, int c, size_t n)
 		return (-1);
 	my_str = (char *)s;
 	my_chr = (unsigned char)c;
-	while (my_str[idx] != my_chr && idx < len)
-		idx++;
-	if (idx == len)
-		return (-1);
-	return (idx);
+	while (idx < len)
+		if (my_str[idx] == my_chr)
+			return (idx);
+		else
+			idx++;
+	return (-1);
 }
 
 void	*ft_memcpy(void *dest, const void *src, size_t n)

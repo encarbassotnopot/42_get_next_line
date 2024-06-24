@@ -6,7 +6,7 @@
 /*   By: ecoma-ba <ecoma-ba@student.42barcel>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/23 16:07:13 by ecoma-ba          #+#    #+#             */
-/*   Updated: 2024/06/23 21:36:26 by ecoma-ba         ###   ########.fr       */
+/*   Updated: 2024/06/24 12:01:01 by ecoma-ba         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include "get_next_line.h"
@@ -24,20 +24,22 @@ char	*grow_buf(char *old_buf, char *new_buf, size_t buf_size,
 
 	if (!old_buf)
 		buf_size = 0;
+	if (extra_size < 1)
+		return (old_buf);
 	buf = ft_calloc(buf_size + extra_size, sizeof(char));
 	if (!buf)
 		return (NULL);
 	if (old_buf)
 		ft_memcpy(buf, old_buf, buf_size);
 	ft_memcpy(&(buf[buf_size]), new_buf, extra_size);
-	ft_bzero(new_buf, extra_size);
+	/*ft_bzero(new_buf, extra_size);*/
 	free(old_buf);
 	return (buf);
 }
 
 // reads in BUFFER_SIZE'd chunks from fd, until a \n is read (or file ends)
 // writes to leftovers and updates it's size
-// returns 0 if everything is ok, 1 on error
+// returns 0 if everything is ok, 1 on error 2 on file error/end
 int	get_next_buffer(int fd, char **leftovers, size_t *leftover_size)
 {
 	char	*new_buf;
@@ -47,12 +49,15 @@ int	get_next_buffer(int fd, char **leftovers, size_t *leftover_size)
 	new_buf = ft_calloc(BUFFER_SIZE, 1);
 	if (!new_buf)
 		return (1);
-	while (ft_memchr_idx(new_buf, '\n', BUFFER_SIZE) == -1
+	while (ft_memchr_idx(new_buf, '\n', read_bytes) == -1
 		&& read_bytes == BUFFER_SIZE)
 	{
 		read_bytes = read(fd, new_buf, BUFFER_SIZE);
 		if (read_bytes <= 0)
-			break ;
+		{
+			free(new_buf);
+			return (2);
+		}
 		*leftovers = grow_buf(*leftovers, new_buf, *leftover_size, read_bytes);
 		if (!*leftovers)
 		{
@@ -69,25 +74,26 @@ int	get_next_buffer(int fd, char **leftovers, size_t *leftover_size)
 // if there are no leftovers, it frees them. otherwise it copies them to
 // the start of the leftover accomulator.
 // returns 1 on error.
-int	manage_leftovers(char **leftovers, size_t *leftover_size, int line_len)
-{
-	char	*tempovers;
-
-	if (leftover_size == 0)
-	{
-		free(*leftovers);
-		*leftovers = NULL;
-	}
-	else
-	{
-		tempovers = *leftovers;
-		*leftovers = ft_memmove(tempovers + line_len, *leftover_size);
-		if (!*leftovers)
-			return (1);
-		free(tempovers);
-	}
-	return (0);
-}
+/*int	manage_leftovers(char **leftovers, size_t *leftover_size,
+		int line_len)*/
+/*{*/
+/*	char	*tempovers;*/
+/**/
+/*	if (leftover_size == 0)*/
+/*	{*/
+/*		free(*leftovers);*/
+/*		*leftovers = NULL;*/
+/*	}*/
+/*	else*/
+/*	{*/
+/*		tempovers = *leftovers;*/
+/*		*leftovers = ft_memdup(tempovers + line_len, *leftover_size);*/
+/*		if (!*leftovers)*/
+/*			return (1);*/
+/*		free(tempovers);*/
+/*	}*/
+/*	return (0);*/
+/*}*/
 
 char	*get_next_line(int fd)
 {
@@ -95,21 +101,38 @@ char	*get_next_line(int fd)
 	static size_t	leftover_size = 0;
 	char			*line;
 	int				line_len;
+	char			*tempovers;
 
 	if (!fd)
 		return (NULL);
-	if (!leftovers)
-		if (get_next_buffer(fd, &leftovers, &leftover_size))
+	if (!leftovers || leftover_size == 0 || ft_memchr_idx(leftovers, '\n',
+			leftover_size) == -1)
+		if (get_next_buffer(fd, &leftovers, &leftover_size) < 0)
 			return (NULL);
+	printf("current buf: ");
+	for (size_t i = 0; i < leftover_size; i++)
+		printf("%c", leftovers[i]);
 	line_len = ft_memchr_idx(leftovers, '\n', leftover_size) + 1;
 	if (line_len == 0)
-		return (leftovers);
-	line = ft_memmove(leftovers, line_len);
-	leftover_size -= line_len;
-	if (manage_leftovers(&leftovers, &leftover_size, line_len) == 1)
 	{
-		free(line);
-		return (NULL);
+		leftover_size = 0;
+		return (leftovers);
+	}
+	line = ft_memdup(leftovers, line_len);
+	line = grow_buf(line, "\0", line_len, 1);
+	leftover_size -= line_len;
+	if (leftover_size == 0)
+	{
+		free(leftovers);
+		leftovers = NULL;
+	}
+	else
+	{
+		tempovers = leftovers;
+		leftovers = ft_memdup(tempovers + line_len, leftover_size);
+		if (!leftovers)
+			return (NULL);
+		free(tempovers);
 	}
 	return (line);
 }
